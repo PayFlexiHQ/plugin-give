@@ -145,7 +145,7 @@ class Payflexi_Give
     private function define_admin_hooks()
     {
 
-        $plugin_admin = new Paystack_Give_Admin($this->get_plugin_name(), $this->get_version());
+        $plugin_admin = new Payflexi_Give_Admin($this->get_plugin_name(), $this->get_version());
 
         $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
         $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
@@ -164,64 +164,64 @@ class Payflexi_Give
          *
          * @return array
          */
-        function give_paystack_register_gateway($gateways)
+        function give_payflexi_register_gateway($gateways)
         {
-            $gateways['paystack'] = array(
-                'admin_label' => esc_attr__('Paystack', 'paystack-give'),
-                'checkout_label' => esc_attr__('Paystack', 'paystack-give'),
+            $gateways['payflexi'] = array(
+                'admin_label' => esc_attr__('PayFlexi', 'payflexi-give'),
+                'checkout_label' => esc_attr__('PayFlexi', 'payflexi-give'),
             );
             return $gateways;
         }
 
-        add_filter('give_payment_gateways', 'give_paystack_register_gateway', 1);
+        add_filter('give_payment_gateways', 'give_payflexi_register_gateway', 1);
 
-        function give_paystack_settings($settings)
+        function give_payflexi_settings($settings)
         {
 
             $check_settings = array(
                 array(
-                    'name' => __('Paystack', 'paystack-give'),
+                    'name' => __('PayFlexi Flexible Checkout', 'payflexi-give'),
                     'desc' => '',
                     'type' => 'give_title',
-                    'id' => 'give_title_paystack',
+                    'id' => 'give_title_payflexi',
                 ),
                 array(
-                    'name' => __('Test Secret Key', 'paystack-give'),
-                    'desc' => __('Enter your Paystack Test Secret Key', 'paystack-give'),
-                    'id' => 'paystack_test_secret_key',
+                    'name' => __('Test Secret Key', 'payflexi-give'),
+                    'desc' => __('Enter your PayFlexi Test Secret Key', 'payflexi-give'),
+                    'id' => 'payflexi_test_secret_key',
                     'type' => 'text',
-                    'row_classes' => 'give-paystack-test-secret-key',
+                    'row_classes' => 'give-payflexi-test-secret-key',
                 ),
                 array(
-                    'name' => __('Test Public Key', 'paystack-give'),
-                    'desc' => __('Enter your Paystack Test Public Key', 'paystack-give'),
-                    'id' => 'paystack_test_public_key',
+                    'name' => __('Test Public Key', 'payflexi-give'),
+                    'desc' => __('Enter your PayFlexi Test Public Key', 'payflexi-give'),
+                    'id' => 'payflexi_test_public_key',
                     'type' => 'text',
-                    'row_classes' => 'give-paystack-test-public-key',
+                    'row_classes' => 'give-payflexi-test-public-key',
                 ),
                 array(
-                    'name' => __('Live Secret Key', 'paystack-give'),
-                    'desc' => __('Enter your Paystack Live Secret Key', 'paystack-give'),
-                    'id' => 'paystack_live_secret_key',
+                    'name' => __('Live Secret Key', 'payflexi-give'),
+                    'desc' => __('Enter your PayFlexi Live Secret Key', 'payflexi-give'),
+                    'id' => 'payflexi_live_secret_key',
                     'type' => 'text',
-                    'row_classes' => 'give-paystack-live-secret-key',
+                    'row_classes' => 'give-payflexi-live-secret-key',
                 ),
                 array(
-                    'name' => __('Live Public Key', 'paystack-give'),
-                    'desc' => __('Enter your Paystack Live Public Key', 'paystack-give'),
-                    'id' => 'paystack_live_public_key',
+                    'name' => __('Live Public Key', 'payflexi-give'),
+                    'desc' => __('Enter your PayFlexi Live Public Key', 'payflexi-give'),
+                    'id' => 'payflexi_live_public_key',
                     'type' => 'text',
-                    'row_classes' => 'give-paystack-live-public-key',
+                    'row_classes' => 'give-payflexi-live-public-key',
                 ),
                 array(
-                    'name' => __('Billing Details', 'paystack-give'),
-                    'desc' => __('This will enable you to collect donor details. This is not required by Paystack (except email) but you might need to collect all information for record purposes', 'paystack-give'),
-                    'id' => 'paystack_billing_details',
+                    'name' => __('Billing Details', 'payflexi-give'),
+                    'desc' => __('This will enable you to collect donor details. This is not required by PayFlexi (except email) but you might need to collect all information for record purposes', 'payflexi-give'),
+                    'id' => 'payflexi_billing_details',
                     'type' => 'radio_inline',
                     'default' => 'disabled',
                     'options' => array(
-                        'enabled' => __('Enabled', 'paystack-give'),
-                        'disabled' => __('Disabled', 'paystack-give'),
+                        'enabled' => __('Enabled', 'payflexi-give'),
+                        'disabled' => __('Disabled', 'payflexi-give'),
                     ),
                 ),
             );
@@ -229,54 +229,7 @@ class Payflexi_Give
             return array_merge($settings, $check_settings);
         }
 
-        add_filter('give_settings_gateways', 'give_paystack_settings');
-
-        /**
-         * Filter the currencies
-         * Note: you can register new currency by using this filter
-         *
-         * @since 1.8.15
-         *
-         * @param array $currencies
-         */
-        function give_paystack_add_currencies($currencies)
-        {
-            $add_currencies = array(
-                'NGN' => array(
-                    'admin_label' => sprintf(__('Nigerian Naira (%1$s)', 'give'), '&#8358;'),
-                    'symbol' => '&#8358;',
-                    'setting' => array(
-                        'currency_position' => 'before',
-                        'thousands_separator' => ',',
-                        'decimal_separator' => '.',
-                        'number_decimals' => 2,
-                    ),
-                ),
-                'GHS' => array(
-                    'admin_label' => sprintf(__('Ghana Cedis (%1$s)', 'give'), 'GHS'),
-                    'symbol' => 'GHS;',
-                    'setting' => array(
-                        'currency_position' => 'before',
-                        'thousands_separator' => '.',
-                        'decimal_separator' => ',',
-                        'number_decimals' => 2,
-                    ),
-                ),
-                'ZAR' => array(
-                    'admin_label' => sprintf(__('South African Rands (%1$s)', 'give'), 'ZAR'),
-                    'symbol' => 'ZAR;',
-                    'setting' => array(
-                        'currency_position' => 'before',
-                        'thousands_separator' => '.',
-                        'decimal_separator' => ',',
-                        'number_decimals' => 2,
-                    ),
-                )
-            );
-            return array_merge($add_currencies, $currencies);
-        }
-        
-        add_filter('give_currencies', 'give_paystack_add_currencies');
+        add_filter('give_settings_gateways', 'give_payflexi_settings');
 
         add_action('parse_request', array($this, 'handle_api_requests'), 0);
 
@@ -310,14 +263,14 @@ class Payflexi_Give
     private function define_public_hooks()
     {
 
-        $plugin_public = new Paystack_Give_Public($this->get_plugin_name(), $this->get_version());
+        $plugin_public = new Payflexi_Give_Public($this->get_plugin_name(), $this->get_version());
 
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
 
-        function give_paystack_credit_card_form($form_id, $echo = true)
+        function give_payflexi_credit_card_form($form_id, $echo = true)
         {
-            $billing_fields_enabled = give_get_option('paystack_billing_details');
+            $billing_fields_enabled = give_get_option('payflexi_billing_details');
 
             if ($billing_fields_enabled == 'enabled') {
                 do_action('give_after_cc_fields');
@@ -327,7 +280,7 @@ class Payflexi_Give
             }
             return $form_id;
         }
-        add_action('give_paystack_cc_form', 'give_paystack_credit_card_form');
+        add_action('give_payflexi_cc_form', 'give_payflexi_credit_card_form');
 
         /**
          * This action will run the function attached to it when it's time to process the donation
@@ -484,7 +437,7 @@ class Payflexi_Give
      * The reference to the class that orchestrates the hooks with the plugin.
      *
      * @since  1.0.0
-     * @return Paystack_Give_Loader    Orchestrates the hooks of the plugin.
+     * @return Payflexi_Give_Loader    Orchestrates the hooks of the plugin.
      */
     public function get_loader()
     {

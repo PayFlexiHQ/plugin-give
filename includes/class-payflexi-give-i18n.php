@@ -24,7 +24,7 @@
  * @subpackage Payflexi_Give/includes
  * @author     Payflexi <support@payflexi.co>
  */
-class Paystack_Give_i18n
+class Payflexi_Give_i18n
 {
 
 

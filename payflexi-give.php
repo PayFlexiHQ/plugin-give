@@ -44,7 +44,7 @@ define('PLUGIN_NAME_VERSION', '1.2.0');
 function activate_payflexi_give() 
 {
     include_once plugin_dir_path(__FILE__) . 'includes/class-payflexi-give-activator.php';
-    PayflexiGive_Activator::activate();
+    Payflexi_Give_Activator::activate();
 }
 
 /**
