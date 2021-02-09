@@ -167,8 +167,8 @@ class Payflexi_Give
         function give_payflexi_register_gateway($gateways)
         {
             $gateways['payflexi'] = array(
-                'admin_label' => esc_attr__('PayFlexi', 'payflexi-give'),
-                'checkout_label' => esc_attr__('PayFlexi', 'payflexi-give'),
+                'admin_label' => esc_attr__('PayFlexi Flexible Checkout', 'payflexi-give'),
+                'checkout_label' => esc_attr__('PayFlexi (Pay in Instalments)', 'payflexi-give'),
             );
             return $gateways;
         }
@@ -239,10 +239,11 @@ class Payflexi_Give
     {
 
         global $wp;
-        if (!empty($_GET[Paystack_Give::API_QUERY_VAR])) { // WPCS: input var okay, CSRF ok.
-            $wp->query_vars[Paystack_Give::API_QUERY_VAR] = sanitize_key(wp_unslash($_GET[Paystack_Give::API_QUERY_VAR])); // WPCS: input var okay, CSRF ok.
+        if (!empty($_GET[Payflexi_Give::API_QUERY_VAR])) { // WPCS: input var okay, CSRF ok.
+            $wp->query_vars[Payflexi_Give::API_QUERY_VAR] = sanitize_key(wp_unslash($_GET[Payflexi_Give::API_QUERY_VAR])); // WPCS: input var okay, CSRF ok.
 
-            $key = $wp->query_vars[Paystack_Give::API_QUERY_VAR];
+            $key = $wp->query_vars[Payflexi_Give::API_QUERY_VAR];
+            ray(['Key' => $key]);
             if ($key && ($key === 'verify') && isset($_GET['reference'])) {
                 // handle verification here
                 $this->verify_transaction();
@@ -286,11 +287,8 @@ class Payflexi_Give
          * This action will run the function attached to it when it's time to process the donation
          * submission.
          **/
-        function give_process_paystack_purchase($purchase_data)
+        function give_process_payflexi_purchase($purchase_data)
         {
-
-			
-			
             // Make sure we don't have any left over errors present.
             give_clear_errors();
 
@@ -299,8 +297,8 @@ class Payflexi_Give
             if (  !$errors ) {
 
                 $form_id         = intval( $purchase_data['post_data']['give-form-id'] );
-            $price_id        = ! empty( $purchase_data['post_data']['give-price-id'] ) ? $purchase_data['post_data']['give-price-id'] : 0;
-            $donation_amount = ! empty( $purchase_data['price'] ) ? $purchase_data['price'] : 0;
+                $price_id        = ! empty( $purchase_data['post_data']['give-price-id'] ) ? $purchase_data['post_data']['give-price-id'] : 0;
+                $donation_amount = ! empty( $purchase_data['price'] ) ? $purchase_data['price'] : 0;
 
                 $payment_data = array(
                     'price' => $donation_amount,
@@ -313,16 +311,16 @@ class Payflexi_Give
                     'currency' => give_get_currency(),
                     'user_info' => $purchase_data['user_info'],
                     'status' => 'pending',
-                    'gateway' => 'paystack',
+                    'gateway' => 'payflexi',
                 );
     
                 // Record the pending payment
                 $payment = give_insert_payment($payment_data);
+
+                ray(['Payment Created' => $payment]);
     			
-                if (!$payment) {
-                    // Record the error
-                
-                    give_record_gateway_error(__('Payment Error', 'give'), sprintf(__('Payment creation failed before sending donor to Paystack. Payment data: %s', 'give'), json_encode($payment_data)), $payment);
+                if (!$payment) {             
+                    give_record_gateway_error(__('Payment Error', 'give'), sprintf(__('Payment creation failed before sending donor to PayFlexi. Payment data: %s', 'give'), json_encode($payment_data)), $payment);
                     // Problems? send back
                     give_send_back_to_checkout('?payment-mode=' . $purchase_data['post_data']['give-gateway']."&message=-some weird error happened-&payment_id=".json_encode($payment));
                 } else {
@@ -330,11 +328,11 @@ class Payflexi_Give
                     //Begin processing payment
                     
                     if (give_is_test_mode()) {
-                        $public_key = give_get_option('paystack_test_public_key');
-                        $secret_key = give_get_option('paystack_test_secret_key');
+                        $public_key = give_get_option('payflexi_test_public_key');
+                        $secret_key = give_get_option('payflexi_test_secret_key');
                     } else {
-                        $public_key = give_get_option('paystack_live_public_key');
-                        $secret_key = give_get_option('paystack_live_secret_key');
+                        $public_key = give_get_option('payflexi_live_public_key');
+                        $secret_key = give_get_option('payflexi_live_secret_key');
                     }
     
                     $ref = $purchase_data['purchase_key']; // . '-' . time() . '-' . preg_replace("/[^0-9a-z_]/i", "_", $purchase_data['user_email']);
@@ -342,72 +340,59 @@ class Payflexi_Give
     
                     $verify_url = home_url() . '?' . http_build_query(
                         [
-                            Paystack_Give::API_QUERY_VAR => 'verify',
+                            Payflexi_Give::API_QUERY_VAR => 'verify',
                             'reference' => $ref,
                         ]
                     );
 					
-					    				//----------
-				$url = "https://api.paystack.co/transaction/initialize";
-				  $fields = [
-					'email' => $payment_data['user_email'],
-					'amount' => $payment_data['price'] * 100,
-					'reference' => $ref,
-					'callback_url' => $verify_url,
-					'currency'=> $currency,
-					 'metadata' => [
-						 'custom_fields' => [
-							 [
-								  'display_name'=> 'Form Title',
-								 'variable_name'=> 'form_title',
-								 'value'=> $payment_data['give_form_title']
-							 ],
-							 [
-								  'display_name'=> 'Plugin',
-								  'variable_name'=> 'plugin',
-								  'value'=> 'give'
-							 ]
-						 ]
-					 ]
-					
-				  ];
-				  $fields_string = http_build_query($fields);
-				  //open connection
-				  $ch = curl_init();
+				    $url = "https://api.payflexi.test/merchants/transactions";
+                    $fields = [
+                        'email' => $payment_data['user_email'],
+                        'amount' => $payment_data['price'],
+                        'reference' => $ref,
+                        'callback_url' => $verify_url,
+                        'currency'=> $currency,
+                        'domain' => 'global',
+                        'meta' => [
+                            'title'=> $payment_data['give_form_title'],
+                        ]
+                        
+                    ];
+                    
+                    $fields_string = http_build_query($fields);
+				    //open connection
+				    $ch = curl_init();
 
-				  //set the url, number of POST vars, POST data
-				  curl_setopt($ch,CURLOPT_URL, $url);
-				  curl_setopt($ch,CURLOPT_POST, true);
-				  curl_setopt($ch,CURLOPT_POSTFIELDS, $fields_string);
-				  curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-					"Authorization: Bearer ". $secret_key,
-					"Cache-Control: no-cache",
-				  ));
+                    //set the url, number of POST vars, POST data
+                    curl_setopt($ch,CURLOPT_URL, $url);
+                    curl_setopt($ch,CURLOPT_POST, true);
+                    curl_setopt($ch,CURLOPT_POSTFIELDS, $fields_string);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                        "Authorization: Bearer ". $secret_key,
+                        "Cache-Control: no-cache",
+                    ));
 
-				  //So that curl_exec returns the contents of the cURL; rather than echoing it
- 				  curl_setopt($ch,CURLOPT_RETURNTRANSFER, true); 
+				    //So that curl_exec returns the contents of the cURL; rather than echoing it
+ 				    curl_setopt($ch,CURLOPT_RETURNTRANSFER, true); 
 
-				  //execute post
-				  $result = curl_exec($ch);
-				$json_response = json_decode($result, true);
-					if($json_response['status']){
-						wp_redirect($json_response['data']['authorization_url']);
-						exit;
-					}else{
-						 give_send_back_to_checkout( '?payment-mode=paystack'.'&error='.$json_response['message'] );
-					}
-			//--------------
-    
-                   
+				    //execute post
+				    $result = curl_exec($ch);
+				    $json_response = json_decode($result, true);
+                        if($json_response['status']){
+                            wp_redirect($json_response['data']['authorization_url']);
+                            exit;
+                        }else{
+                            give_send_back_to_checkout( '?payment-mode=payflexi'.'&error='.$json_response['message'] );
+                        }
                 }
     
             }else{
-                give_send_back_to_checkout( '?payment-mode=paystack'.'&errors='.json_encode($errors) );
+                give_send_back_to_checkout( '?payment-mode=payflexi'.'&errors='.json_encode($errors) );
             }
            
         }
 
-        add_action('give_gateway_paystack', 'give_process_paystack_purchase');
+        add_action('give_gateway_payflexi', 'give_process_payflexi_purchase');
 
     }
 
