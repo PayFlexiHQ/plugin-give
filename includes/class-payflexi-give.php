@@ -344,6 +344,8 @@ class Payflexi_Give
                             'reference' => $ref,
                         ]
                     );
+
+                    ray($verify_url);
 					
 				    $url = "https://api.payflexi.test/merchants/transactions";
                     $fields = [
@@ -358,28 +360,31 @@ class Payflexi_Give
                         ]
                         
                     ];
-                    
-                    $fields_string = http_build_query($fields);
 				    //open connection
 				    $ch = curl_init();
 
                     //set the url, number of POST vars, POST data
-                    curl_setopt($ch,CURLOPT_URL, $url);
-                    curl_setopt($ch,CURLOPT_POST, true);
-                    curl_setopt($ch,CURLOPT_POSTFIELDS, $fields_string);
+                    curl_setopt($ch, CURLOPT_URL, $url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+                    curl_setopt($ch, CURLOPT_HEADER, false );
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
                     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                         "Authorization: Bearer ". $secret_key,
-                        "Cache-Control: no-cache",
+                        "Content-Type:  application/json",
+                        "Accept: application/json"
                     ));
 
-				    //So that curl_exec returns the contents of the cURL; rather than echoing it
- 				    curl_setopt($ch,CURLOPT_RETURNTRANSFER, true); 
-
 				    //execute post
-				    $result = curl_exec($ch);
-				    $json_response = json_decode($result, true);
-                        if($json_response['status']){
-                            wp_redirect($json_response['data']['authorization_url']);
+                    $result = curl_exec($ch);
+                    curl_close( $ch );
+           
+                    $json_response = json_decode($result, true);
+                    ray($json_response);
+                        if(!$json_response['errors']){
+                            wp_redirect($json_response['checkout_url']);
                             exit;
                         }else{
                             give_send_back_to_checkout( '?payment-mode=payflexi'.'&error='.$json_response['message'] );
