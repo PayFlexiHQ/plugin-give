@@ -364,6 +364,8 @@ class Payflexi_Give
                     'status' => 'pending',
                     'gateway' => 'payflexi',
                 );
+
+                ray($payment_data);
     
                 // Record the pending payment
                 $payment = give_insert_payment($payment_data);
@@ -452,7 +454,6 @@ class Payflexi_Give
     {
         $ref = $_GET['reference'];
         $payment = give_get_payment_by('key', $ref);
-        // die(json_encode($payment));
 
         if ($payment === false) {
             die('not a valid ref');
@@ -467,42 +468,43 @@ class Payflexi_Give
 
         $url = "https://api.payflexi.test/merchants/transactions/" . $ref;
 
+        $headers = array(
+            'Authorization' => 'Bearer ' . $secret_key,
+        );
+        
         $args = array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $secret_key,
-            ),
+            'sslverify' => false, //Set to true on production
+            'headers'    => $headers,
+            'timeout'    => 60,
         );
         
         $request = wp_remote_get($url, $args);
 
-        if (is_wp_error($request)) {
-            return false; // Bail early
-        }
+        if (! is_wp_error($request) && 200 == wp_remote_retrieve_response_code($request)) {
 
         $body = wp_remote_retrieve_body($request);
 
         $result = json_decode($body);
 
-        // var_dump($result);
+            if (!$result->errors) {
 
-        if (!$result->errors) {
+                // the transaction was successful, you can deliver value
+                
+                give_update_payment_status($payment->ID, 'complete');
 
-            // the transaction was successful, you can deliver value
-            
-            give_update_payment_status($payment->ID, 'complete');
-
-            wp_redirect(give_get_success_page_uri());
-			exit;
-        } else {
-            // the transaction was not successful, do not deliver value'
-            give_update_payment_status($payment->ID, 'failed');
-            give_insert_payment_note($payment, 'ERROR: ' . $result->data->message);
-            echo json_encode(
-                [
-                    'status' => 'not-given',
-                    'message' => "Transaction was not successful: Last gateway response was: " . $result['data']['gateway_response'],
-                ]
-            );
+                wp_redirect(give_get_success_page_uri());
+                exit;
+            } else {
+                // the transaction was not successful, do not deliver value'
+                give_update_payment_status($payment->ID, 'failed');
+                give_insert_payment_note($payment, 'ERROR: ' . $result->data->message);
+                echo json_encode(
+                    [
+                        'status' => 'not-given',
+                        'message' => "Transaction was not successful: Last gateway response was: " . $result['data']['gateway_response'],
+                    ]
+                );
+            }
         }    
     }
 
