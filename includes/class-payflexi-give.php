@@ -118,6 +118,50 @@ class Payflexi_Give
     }
 
     /**
+     * Run the loader to execute all of the hooks with WordPress.
+     *
+     * @since 1.0.0
+     */
+    public function run()
+    {
+        $this->loader->run();
+    }
+
+    /**
+     * The name of the plugin used to uniquely identify it within the context of
+     * WordPress and to define internationalization functionality.
+     *
+     * @since  1.0.0
+     * @return string    The name of the plugin.
+     */
+    public function get_plugin_name()
+    {
+        return $this->plugin_name;
+    }
+
+    /**
+     * The reference to the class that orchestrates the hooks with the plugin.
+     *
+     * @since  1.0.0
+     * @return Payflexi_Give_Loader    Orchestrates the hooks of the plugin.
+     */
+    public function get_loader()
+    {
+        return $this->loader;
+    }
+
+    /**
+     * Retrieve the version number of the plugin.
+     *
+     * @since  1.0.0
+     * @return string    The version number of the plugin.
+     */
+    public function get_version()
+    {
+        return $this->version;
+    }
+
+    /**
      * Define the locale for this plugin for internationalization.
      *
      * Uses the Paystack_Give_i18n class in order to set the domain and to register the hook
@@ -243,9 +287,16 @@ class Payflexi_Give
             $wp->query_vars[Payflexi_Give::API_QUERY_VAR] = sanitize_key(wp_unslash($_GET[Payflexi_Give::API_QUERY_VAR])); // WPCS: input var okay, CSRF ok.
 
             $key = $wp->query_vars[Payflexi_Give::API_QUERY_VAR];
-            ray(['Key' => $key]);
-            if ($key && ($key === 'verify') && isset($_GET['reference'])) {
-                // handle verification here
+
+            if ($key && ($key === 'verify') && isset($_GET['pf_cancelled'])) {
+                wp_redirect( give_get_failed_transaction_uri() );
+            }
+
+            if ($key && ($key === 'verify') && isset($_GET['pf_declined'])) {
+                wp_redirect( give_get_failed_transaction_uri() );
+            }
+       
+            if ($key && ($key === 'verify') && isset($_GET['pf_approved'])) {
                 $this->verify_transaction();
                 die();
             }
@@ -294,7 +345,7 @@ class Payflexi_Give
 
             // Any errors?
             $errors = give_get_errors();
-            if (  !$errors ) {
+            if ( !$errors ) {
 
                 $form_id         = intval( $purchase_data['post_data']['give-form-id'] );
                 $price_id        = ! empty( $purchase_data['post_data']['give-price-id'] ) ? $purchase_data['post_data']['give-price-id'] : 0;
@@ -316,8 +367,6 @@ class Payflexi_Give
     
                 // Record the pending payment
                 $payment = give_insert_payment($payment_data);
-
-                ray(['Payment Created' => $payment]);
     			
                 if (!$payment) {             
                     give_record_gateway_error(__('Payment Error', 'give'), sprintf(__('Payment creation failed before sending donor to PayFlexi. Payment data: %s', 'give'), json_encode($payment_data)), $payment);
@@ -344,8 +393,6 @@ class Payflexi_Give
                             'reference' => $ref,
                         ]
                     );
-
-                    ray($verify_url);
 					
 				    $url = "https://api.payflexi.test/merchants/transactions";
                     $fields = [
@@ -382,7 +429,7 @@ class Payflexi_Give
                     curl_close( $ch );
            
                     $json_response = json_decode($result, true);
-                    ray($json_response);
+                    
                         if(!$json_response['errors']){
                             wp_redirect($json_response['checkout_url']);
                             exit;
@@ -401,51 +448,6 @@ class Payflexi_Give
 
     }
 
-    /**
-     * Run the loader to execute all of the hooks with WordPress.
-     *
-     * @since 1.0.0
-     */
-    public function run()
-    {
-        $this->loader->run();
-    }
-
-    /**
-     * The name of the plugin used to uniquely identify it within the context of
-     * WordPress and to define internationalization functionality.
-     *
-     * @since  1.0.0
-     * @return string    The name of the plugin.
-     */
-    public function get_plugin_name()
-    {
-        return $this->plugin_name;
-    }
-
-    /**
-     * The reference to the class that orchestrates the hooks with the plugin.
-     *
-     * @since  1.0.0
-     * @return Payflexi_Give_Loader    Orchestrates the hooks of the plugin.
-     */
-    public function get_loader()
-    {
-        return $this->loader;
-
-    }
-
-    /**
-     * Retrieve the version number of the plugin.
-     *
-     * @since  1.0.0
-     * @return string    The version number of the plugin.
-     */
-    public function get_version()
-    {
-        return $this->version;
-    }
-
     public function Verify_transaction()
     {
         $ref = $_GET['reference'];
@@ -455,13 +457,15 @@ class Payflexi_Give
         if ($payment === false) {
             die('not a valid ref');
         }
+
+
         if (give_is_test_mode()) {
-            $secret_key = give_get_option('paystack_test_secret_key');
+            $secret_key = give_get_option('payflexi_test_secret_key');
         } else {
-            $secret_key = give_get_option('paystack_live_secret_key');
+            $secret_key = give_get_option('payflexi_live_secret_key');
         }
 
-        $url = "https://api.paystack.co/transaction/verify/" . $ref;
+        $url = "https://api.payflexi.test/merchants/transactions/" . $ref;
 
         $args = array(
             'headers' => array(
@@ -481,29 +485,12 @@ class Payflexi_Give
 
         // var_dump($result);
 
-        if ($result->data->status == 'success') {
-            
-            
-            //PSTK Logger
-            if (give_is_test_mode()) {
-                $pk = give_get_option('paystack_test_public_key');
-            } else {
-                $pk = give_get_option('paystack_live_public_key');
-            }
-                $pstk_logger =  new give_paystack_plugin_tracker('give',$pk);
-                $pstk_logger->log_transaction_success($ref);
-            //
-
+        if (!$result->errors) {
 
             // the transaction was successful, you can deliver value
             
             give_update_payment_status($payment->ID, 'complete');
-//             echo json_encode(
-//                 [
-//                     'url' => give_get_success_page_uri(),
-//                     'status' => 'given',
-//                 ]
-//             );
+
             wp_redirect(give_get_success_page_uri());
 			exit;
         } else {
