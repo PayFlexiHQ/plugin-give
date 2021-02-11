@@ -88,7 +88,7 @@ final class Give_PayFlexi
         }
 
         $this->load_files();
-        $this->payments = new Give_Payflexi_Process_payment();
+        $this->payments = new Give_Payflexi_payment();
         $this->setup_hooks();
         $this->load_textdomain();
     }
@@ -145,7 +145,7 @@ final class Give_PayFlexi
         require_once GIVE_PAYFLEXI_DIR . 'includes/admin/class-admin-settings.php';
 
         // Process payment
-        require_once GIVE_PAYFLEXI_DIR . 'includes/class-payflexi-process-payment.php';
+        require_once GIVE_PAYFLEXI_DIR . 'includes/class-payflexi-payment.php';
         require_once GIVE_PAYFLEXI_DIR . 'includes/class-payflexi-webhooks.php';
 
         // Load frontend actions.

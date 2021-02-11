@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Give_Payflexi_Process_payment
+class Give_Payflexi_payment
 {
     protected $loader;
 
@@ -66,10 +66,10 @@ class Give_Payflexi_Process_payment
     public function handle_api_requests()
     {
         global $wp;
-        if (!empty($_GET[Give_Payflexi_Process_payment::API_QUERY_VAR])) { // WPCS: input var okay, CSRF ok.
-            $wp->query_vars[Give_Payflexi_Process_payment::API_QUERY_VAR] = sanitize_key(wp_unslash($_GET[Give_Payflexi_Process_payment::API_QUERY_VAR])); // WPCS: input var okay, CSRF ok.
+        if (!empty($_GET[Give_Payflexi_payment::API_QUERY_VAR])) { // WPCS: input var okay, CSRF ok.
+            $wp->query_vars[Give_Payflexi_payment::API_QUERY_VAR] = sanitize_key(wp_unslash($_GET[Give_Payflexi_payment::API_QUERY_VAR])); // WPCS: input var okay, CSRF ok.
 
-            $key = $wp->query_vars[Give_Payflexi_Process_payment::API_QUERY_VAR];
+            $key = $wp->query_vars[Give_Payflexi_payment::API_QUERY_VAR];
 
             if ($key && ($key === 'verify') && isset($_GET['pf_cancelled'])) {
                 wp_redirect(give_get_failed_transaction_uri());
@@ -143,7 +143,7 @@ class Give_Payflexi_Process_payment
 
                 $verify_url = home_url() . '?' . http_build_query(
                     [
-                        Give_Payflexi_Process_payment::API_QUERY_VAR => 'verify',
+                        Give_Payflexi_payment::API_QUERY_VAR => 'verify',
                         'reference' => $ref,
                     ]
                 );
