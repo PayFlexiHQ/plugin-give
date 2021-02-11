@@ -2,12 +2,7 @@
 
 /**
  * Register all actions and filters for the plugin
- *
- * @link  https://payflexi.com
  * @since 1.0.0
- *
- * @package    Payflexi_Give
- * @subpackage Payflexi_Give/includes
  */
 
 /**
@@ -17,11 +12,8 @@
  * the plugin, and register them with the WordPress API. Call the
  * run function to execute the list of actions and filters.
  *
- * @package    Payflexi_Give
- * @subpackage Payflexi_Give/includes
- * @author     Payflexi <support@payflexi.co>
  */
-class Payflexi_Give_Loader
+class Give_PayFlexi_Loader
 {
 
     /**
