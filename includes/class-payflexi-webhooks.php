@@ -118,7 +118,8 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 				ray(['Payment from event' => $payment]);
 				$payment_id   = absint($payment->ID);
 				ray(['Payment ID' => $payment_id]);
-				$donation_amount  = $event->data->amount ? $event->data->amount : 0;
+				$payment_amount = give_donation_amount( $payment_id );
+				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', false, false, 'donation');
 				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
 		
 				if ($amount_paid < $donation_amount ) {
@@ -131,6 +132,7 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 					if($reference !== $initial_reference){
 						$installment_amount_paid = give_get_meta($payment_id, '_payflexi_installment_amount_paid', false, false, 'donation');
 						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
+						ray(['Total instalment paid' => $total_installment_amount_paid]);
 						give_update_meta($payment_id, '_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
 						if($total_installment_amount_paid >= $donation_amount){
 							give_update_payment_meta($payment_id,  '_give_payment_total', $donation_amount);

@@ -244,15 +244,17 @@ class Give_Payflexi_payment
                 //Set Transaction ID to Processed Donation.
                 give_set_payment_transaction_id($payment_id, $transaction_id);
                 
-                $payment_amount = give_donation_amount( $payment_id );
+                $donation_amount = $result->data->amount ? $result->data->amount : 0;
                 $amount_paid    = $result->data->txn_amount ? $result->data->txn_amount : 0;
 
-                if ($amount_paid < $payment_amount ) {
+                if ($amount_paid < $donation_amount ) {
+                    give_update_meta($payment_id, '_give_payflexi_donation_amount', $donation_amount, '', 'donation');
                     give_update_meta($payment_id, '_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
                     give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
                     give_update_payment_status($payment_id, 'complete');
                     give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
                 }else{
+                    give_update_meta($payment_id, '_give_payflexi_donation_amount', $donation_amount, '', 'donation');
                     give_update_payment_status($payment_id, 'complete');
                 }
 
