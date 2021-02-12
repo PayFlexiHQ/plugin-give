@@ -1,4 +1,4 @@
-=== Give - PayFlexi Instalment Payment Gateway ===
+=== PayFlexi Instalment Payment Gateway for Give ===
 Contributors: stanwarri
 Tags: give, payflexi, flexible checkout, installment payment, donation
 Requires at least: 3.0.1

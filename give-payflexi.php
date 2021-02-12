@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: Give - PayFlexi Instalment Payment Gateway
+ * Plugin Name: PayFlexi Instalment Payment Gateway for Give
  * Plugin URI: http://developers.payflexi.co
  * Description: PayFlexi Flexible Checkout Payment for Give allows site to accept installment payments for donations from their customers, anywhere on the Give plugin platform. Accept payments via Stripe, PayStack, Flutterwave, and more. 
  * Version:1.0.0

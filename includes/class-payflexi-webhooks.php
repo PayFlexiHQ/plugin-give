@@ -84,11 +84,7 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 				give_record_gateway_error(
 					__( 'PayFlexi - Webhook Received', 'give-payflexi' ),
 					sprintf(
-					/* translators: 1. Event ID 2. Event Type 3. Message */
-						__( 'Webhook received with ID %1$s and TYPE %2$s which processed and returned a message %3$s.', 'give-payflexi' ),
-						$event->id,
-						$event->type,
-						$message
+						__( 'Webhook received returned an error message.', 'give-payflexi' ),
 					)
 				);
 			}
@@ -108,24 +104,49 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 		 * @return bool|string
 		 */
 		public function process($event) {
-
+			ray(['Webhook Event' => $event]);
 			// Next, proceed with additional webhooks.
 			if ('transaction.approved' == $event->event) {
 				status_header( 200 );
-
 				// Update time of webhook received whenever the event is retrieved.
 				give_update_option( 'give_payflexi_last_webhook_received_timestamp', current_time( 'timestamp', 1 ) );
+				
+				$reference = $event->data->reference;
+				$initial_reference = $event->data->initial_reference;
 
+				$payment = give_get_payment_by('key', $initial_reference);
+				ray(['Payment from event' => $payment]);
+				$payment_id   = absint($payment->ID);
+				ray(['Payment ID' => $payment_id]);
+				$donation_amount  = $event->data->amount ? $event->data->amount : 0;
+				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
 		
-				$event_type = $event->event;
+				if ($amount_paid < $donation_amount ) {
+					if($reference === $initial_reference){
+						give_update_meta($payment_id, '_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
+						give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
+						give_update_payment_status($payment_id, 'complete');
+						give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
+					}
+					if($reference !== $initial_reference){
+						$installment_amount_paid = give_get_meta($payment_id, '_payflexi_installment_amount_paid', false, false, 'donation');
+						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
+						give_update_meta($payment_id, '_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
+						if($total_installment_amount_paid >= $donation_amount){
+							give_update_payment_meta($payment_id,  '_give_payment_total', $donation_amount);
+							give_update_payment_status($payment_id, 'complete');
+							give_insert_payment_note($payment, 'Instalment Payment made: ' . $donation_amount);
+						}else{
+							give_update_payment_meta($payment_id,  '_give_payment_total', $total_installment_amount_paid);
+							give_update_payment_status($payment_id, 'complete');
+							give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
+						}
+					}
+				}else{
+					give_update_payment_status($payment_id, 'complete');
+				}
 
-				/**
-				 * @todo Add switch case here in case any webhook trigger is required for one-time donations.
-				 */
-
-				do_action( 'give_payflexi_event_' . $event_type, $event );
-
-				return $event_type;
+				return true;
 
 			}
 
