@@ -106,7 +106,7 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 		public function process($event) {
 			ray(['Webhook Event' => $event]);
 			// Next, proceed with additional webhooks.
-			if ('transaction.approved' == $event->event) {
+			if ('transaction.approved' == $event->event && 'approved' == $event->data->status) {
 				status_header( 200 );
 				// Update time of webhook received whenever the event is retrieved.
 				give_update_option( 'give_payflexi_last_webhook_received_timestamp', current_time( 'timestamp', 1 ) );
@@ -117,23 +117,22 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 				$payment = give_get_payment_by('key', $initial_reference);
 				ray(['Payment from event' => $payment]);
 				$payment_id   = absint($payment->ID);
-				ray(['Payment ID' => $payment_id]);
-				$payment_amount = give_donation_amount( $payment_id );
 				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', false, false, 'donation');
+				ray($donation_amount);
 				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
 		
 				if ($amount_paid < $donation_amount ) {
 					if($reference === $initial_reference){
-						give_update_meta($payment_id, '_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
+						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
 						give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
 						give_update_payment_status($payment_id, 'complete');
 						give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
 					}
 					if($reference !== $initial_reference){
-						$installment_amount_paid = give_get_meta($payment_id, '_payflexi_installment_amount_paid', false, false, 'donation');
+						$installment_amount_paid = give_get_meta($payment_id, '_give_payflexi_installment_amount_paid', false, false, 'donation');
 						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
 						ray(['Total instalment paid' => $total_installment_amount_paid]);
-						give_update_meta($payment_id, '_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
+						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
 						if($total_installment_amount_paid >= $donation_amount){
 							give_update_payment_meta($payment_id,  '_give_payment_total', $donation_amount);
 							give_update_payment_status($payment_id, 'complete');
