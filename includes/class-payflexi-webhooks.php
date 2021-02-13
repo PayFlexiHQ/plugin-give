@@ -68,8 +68,6 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 
 			$event = json_decode( $body );
 
-			ray(['Webhook Event' => $event]);
-
 			$processed_event = $this->process( $event );
 
 			if ( false === $processed_event ) {
@@ -104,7 +102,6 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 		 * @return bool|string
 		 */
 		public function process($event) {
-			ray(['Webhook Event' => $event]);
 			// Next, proceed with additional webhooks.
 			if ('transaction.approved' == $event->event && 'approved' == $event->data->status) {
 				status_header( 200 );
@@ -115,10 +112,8 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 				$initial_reference = $event->data->initial_reference;
 
 				$payment = give_get_payment_by('key', $initial_reference);
-				ray(['Payment from event' => $payment]);
 				$payment_id   = absint($payment->ID);
-				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', false, false, 'donation');
-				ray($donation_amount);
+				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', true, false, 'donation');
 				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
 		
 				if ($amount_paid < $donation_amount ) {
@@ -129,7 +124,8 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 						give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
 					}
 					if($reference !== $initial_reference){
-						$installment_amount_paid = give_get_meta($payment_id, '_give_payflexi_installment_amount_paid', false, false, 'donation');
+						$installment_amount_paid = give_get_meta($payment_id, '_give_payflexi_installment_amount_paid', true, false, 'donation');
+						ray(['Instalment paid' => $installment_amount_paid]);
 						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
 						ray(['Total instalment paid' => $total_installment_amount_paid]);
 						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
