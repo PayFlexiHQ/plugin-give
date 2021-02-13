@@ -125,15 +125,14 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 					}
 					if($reference !== $initial_reference){
 						$installment_amount_paid = give_get_meta($payment_id, '_give_payflexi_installment_amount_paid', true, false, 'donation');
-						ray(['Instalment paid' => $installment_amount_paid]);
 						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
-						ray(['Total instalment paid' => $total_installment_amount_paid]);
 						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
 						if($total_installment_amount_paid >= $donation_amount){
 							give_update_payment_meta($payment_id,  '_give_payment_total', $donation_amount);
 							give_update_payment_status($payment_id, 'complete');
 							give_insert_payment_note($payment, 'Instalment Payment made: ' . $donation_amount);
 						}else{
+							give_increase_total_earnings($amount_paid);
 							give_update_payment_meta($payment_id,  '_give_payment_total', $total_installment_amount_paid);
 							give_update_payment_status($payment_id, 'complete');
 							give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);

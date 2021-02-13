@@ -252,6 +252,8 @@ class Give_Payflexi_payment
                     give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
                     give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
                     give_update_payment_status($payment_id, 'complete');
+                    $balance_amount = round($donation_amount - $amount_paid, 2);
+                    give_decrease_total_earnings($balance_amount);
                     give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
                 }else{
                     give_update_meta($payment_id, '_give_payflexi_donation_amount', $donation_amount, '', 'donation');
