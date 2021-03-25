@@ -102,7 +102,6 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 		 * @return bool|string
 		 */
 		public function process($event) {
-			ray($event);
 			// Next, proceed with additional webhooks.
 			if ('transaction.approved' == $event->event && 'approved' == $event->data->status) {
 				status_header( 200 );
@@ -118,7 +117,6 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', true, false, 'donation');
 				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
 				$total_amount_paid = $event->data->total_amount_paid;
-				ray($saved_txn_ref);
 		
 				if ($amount_paid < $donation_amount ) {
 					if($reference === $initial_reference && (!$saved_txn_ref || empty($saved_txn_ref))){

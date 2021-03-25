@@ -147,7 +147,7 @@ class Give_Payflexi_payment
                 ]
             );
 
-            $url = "https://api.payflexi.test/merchants/transactions";
+            $url = "https://api.payflexi.co/merchants/transactions";
             $fields = [
                 'email' => $payment_data['user_email'],
                 'name' => $name,
@@ -209,14 +209,14 @@ class Give_Payflexi_payment
 
         $merchant = give_payflexi_get_merchant_credentials();
 
-        $url = "https://api.payflexi.test/merchants/transactions/" . $payment_reference;
+        $url = "https://api.payflexi.co/merchants/transactions/" . $payment_reference;
 
         $headers = array(
             'Authorization' => 'Bearer ' . $merchant['secret_key'],
         );
 
         $args = array(
-            'sslverify' => false, //Set to true on production
+            'sslverify' => true, //Set to true on production
             'headers'    => $headers,
             'timeout'    => 60,
         );
