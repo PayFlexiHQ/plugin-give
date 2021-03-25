@@ -102,6 +102,7 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 		 * @return bool|string
 		 */
 		public function process($event) {
+			ray($event);
 			// Next, proceed with additional webhooks.
 			if ('transaction.approved' == $event->event && 'approved' == $event->data->status) {
 				status_header( 200 );
@@ -113,21 +114,24 @@ if ( ! class_exists( 'Give_PayFlexi_Webhooks' ) ) {
 
 				$payment = give_get_payment_by('key', $initial_reference);
 				$payment_id   = absint($payment->ID);
+				$saved_txn_ref = give_get_meta($payment_id, '_give_payflexi_transaction_reference', true, false, 'donation');
 				$donation_amount = give_get_meta($payment_id, '_give_payflexi_donation_amount', true, false, 'donation');
 				$amount_paid  = $event->data->txn_amount ? $event->data->txn_amount : 0;
+				$total_amount_paid = $event->data->total_amount_paid;
+				ray($saved_txn_ref);
 		
 				if ($amount_paid < $donation_amount ) {
-					if($reference === $initial_reference){
+					if($reference === $initial_reference && (!$saved_txn_ref || empty($saved_txn_ref))){
 						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
 						give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
 						give_update_payment_status($payment_id, 'complete');
 						give_insert_payment_note($payment, 'Instalment Payment made: ' . $amount_paid);
 					}
-					if($reference !== $initial_reference){
+					if($reference !== $initial_reference && (!$saved_txn_ref || !empty($saved_txn_ref))){
 						$installment_amount_paid = give_get_meta($payment_id, '_give_payflexi_installment_amount_paid', true, false, 'donation');
 						$total_installment_amount_paid = $installment_amount_paid + $amount_paid;
 						give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $total_installment_amount_paid, '', 'donation');
-						if($total_installment_amount_paid >= $donation_amount){
+						if($total_amount_paid >= $donation_amount){
 							give_update_payment_meta($payment_id,  '_give_payment_total', $donation_amount);
 							give_update_payment_status($payment_id, 'complete');
 							give_insert_payment_note($payment, 'Instalment Payment made: ' . $donation_amount);

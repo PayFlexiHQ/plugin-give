@@ -230,7 +230,7 @@ class Give_Payflexi_Admin_Settings {
 						echo sprintf(
 						/* translators: 1. Webhook settings page. */
 							__( ' You can  visit your <a href="%1$s" target="_blank">PayFlexi Merchant Dashboard</a> to add a new webhook. ', 'give-payflexi' ),
-							esc_url_raw( 'https://merchant.payflexi.co/settings/#api-keys-integrations' )
+							esc_url_raw( 'https://merchant.payflexi.co/developers?tab=api-keys-integrations' )
 						);
 						esc_html_e( 'Please add a new webhook endpoint for the following URL:', 'give-payflexi' );
 						?>

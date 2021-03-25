@@ -199,8 +199,9 @@ class Give_Payflexi_payment
 
     public function verify_transaction()
     {
-        $ref = $_GET['reference'];
-        $payment = give_get_payment_by('key', $ref);
+        $payment_reference = sanitize_text_field($_GET['reference']);
+        
+        $payment = give_get_payment_by('key', $payment_reference);
 
         if ($payment === false) {
             die('not a valid ref');
@@ -208,7 +209,7 @@ class Give_Payflexi_payment
 
         $merchant = give_payflexi_get_merchant_credentials();
 
-        $url = "https://api.payflexi.test/merchants/transactions/" . $ref;
+        $url = "https://api.payflexi.test/merchants/transactions/" . $payment_reference;
 
         $headers = array(
             'Authorization' => 'Bearer ' . $merchant['secret_key'],
@@ -248,6 +249,7 @@ class Give_Payflexi_payment
                 $amount_paid    = $result->data->txn_amount ? $result->data->txn_amount : 0;
 
                 if ($amount_paid < $donation_amount ) {
+                    give_update_meta($payment_id, '_give_payflexi_transaction_reference', $payment_reference, true );
                     give_update_meta($payment_id, '_give_payflexi_donation_amount', $donation_amount, '', 'donation');
                     give_update_meta($payment_id, '_give_payflexi_installment_amount_paid', $amount_paid, '', 'donation');
                     give_update_payment_meta($payment_id,  '_give_payment_total', $amount_paid);
@@ -278,8 +280,9 @@ class Give_Payflexi_payment
 
     public function cancel_transaction()
     {
-        $ref = $_GET['reference'];
-        $payment = give_get_payment_by('key', $ref);
+        $payment_reference = sanitize_text_field($_GET['reference']);
+
+        $payment = give_get_payment_by('key', $payment_reference);
 
         if ($payment === false) {
             die('not a valid ref');
@@ -305,8 +308,9 @@ class Give_Payflexi_payment
 
     public function decline_transaction()
     {
-        $ref = $_GET['reference'];
-        $payment = give_get_payment_by('key', $ref);
+        $payment_reference = sanitize_text_field($_GET['reference']);
+
+        $payment = give_get_payment_by('key', $payment_reference);
 
         if ($payment === false) {
             die('not a valid ref');
