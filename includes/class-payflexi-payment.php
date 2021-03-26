@@ -129,7 +129,7 @@ class Give_Payflexi_payment
 
             // Auto set payment to abandoned in one hour if donor is not able to donate in that time.
             wp_schedule_single_event(current_time('timestamp', 1) + HOUR_IN_SECONDS, 'give_payflexi_set_donation_abandoned', array($payment));
-
+            
             // Get Merchant Details.
             $merchant = give_payflexi_get_merchant_credentials();
 
@@ -137,22 +137,28 @@ class Give_Payflexi_payment
             $first_name = isset($purchase_data['post_data']['give_first']) ? $purchase_data['post_data']['give_first'] : $purchase_data['user_info']['first_name'];
             $last_name  = isset($purchase_data['post_data']['give_last']) ? $purchase_data['post_data']['give_last'] : $purchase_data['user_info']['last_name'];
             $name    = $first_name . ' ' . $last_name;
-            $ref = $purchase_data['purchase_key'];
+            $reference = $purchase_data['purchase_key'];
             $currency = give_get_currency();
 
             $verify_url = home_url() . '?' . http_build_query(
                 [
                     Give_Payflexi_payment::API_QUERY_VAR => 'verify',
-                    'reference' => $ref,
+                    'reference' => $reference,
                 ]
             );
 
-            $url = "https://api.payflexi.co/merchants/transactions";
-            $fields = [
+            $headers = array(
+                'Authorization' => 'Bearer ' . $merchant['secret_key'],
+                'Content-Type' =>  'application/json',
+                'Accept' =>  'application/json'
+            );
+
+    
+            $body = array(
                 'email' => $payment_data['user_email'],
                 'name' => $name,
                 'amount' => $payment_data['price'],
-                'reference' => $ref,
+                'reference' => $reference,
                 'callback_url' => $verify_url,
                 'currency' => $currency,
                 'domain' => 'global',
@@ -160,33 +166,28 @@ class Give_Payflexi_payment
                     'title' => $payment_data['give_form_title'],
                     'donation_id' => $payment
                 ]
+            );
 
-            ];
-            //open connection
-            $ch = curl_init();
+            $args = array(
+                'body'    => json_encode($body),
+                'headers' => $headers,
+                'sslverify' => false, //True for production
+                'timeout' => 60,
+            );
 
-            //set the url, number of POST vars, POST data
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HEADER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                "Authorization: Bearer " . $merchant['secret_key'],
-                "Content-Type:  application/json",
-                "Accept: application/json"
-            ));
+            //Set Api endpoint
+            $payflexi_api_endpoint = "https://api.payflexi.co/merchants/transactions";
 
-            //execute post
-            $result = curl_exec($ch);
-            curl_close($ch);
+            $request = wp_remote_post($payflexi_api_endpoint, $args);
 
-            $json_response = json_decode($result, true);
+            if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
+                $payflexi_response = json_decode( wp_remote_retrieve_body( $request ) );
+            } else {
+                $payflexi_response = json_decode( wp_remote_retrieve_body( $request ) );
+            }
 
-            if (!$json_response['errors']) {
-                wp_redirect($json_response['checkout_url']);
+            if (!$payflexi_response->errors) {
+                wp_redirect($payflexi_response->checkout_url);
                 exit;
             } else {
                 give_send_back_to_checkout("?payment-mode={$purchase_data['gateway']}&form-id={$purchase_data['post_data']['give-form-id']}");
