@@ -171,7 +171,7 @@ class Give_Payflexi_payment
             $args = array(
                 'body'    => json_encode($body),
                 'headers' => $headers,
-                'sslverify' => false, //True for production
+                'sslverify' => true, 
                 'timeout' => 60,
             );
 
